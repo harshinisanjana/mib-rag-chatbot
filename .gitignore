@@ -1,0 +1,79 @@
+# ==============================================================================
+# Environment Variables & Secrets
+# ==============================================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.crt
+*.cert
+secrets.json
+auth.json
+
+# ==============================================================================
+# Python & Virtual Environments
+# ==============================================================================
+venv/
+env/
+ENV/
+.venv/
+*/venv/
+*/env/
+*/.venv/
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# ==============================================================================
+# Node.js & Angular Frontend
+# ==============================================================================
+node_modules/
+*/node_modules/
+dist/
+*/dist/
+build/
+*/build/
+.angular/
+*/.angular/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ==============================================================================
+# Uploads & Temp Data
+# ==============================================================================
+uploads/*
+!uploads/.gitkeep
+backend/uploads/*
+!backend/uploads/.gitkeep
+scratch/
+*/scratch/
+temp/
+tmp/
+*.log
+*.sqlite
+*.sqlite3
+
+# ==============================================================================
+# IDEs & OS Files
+# ==============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
