@@ -7,11 +7,6 @@ from fastapi import UploadFile, HTTPException, status
 from app.core.config import settings
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx"}
-ALLOWED_MIME_TYPES = {
-    "application/pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/octet-stream",  # Fallback for some clients
-}
 
 
 def sanitize_filename(filename: str) -> str:

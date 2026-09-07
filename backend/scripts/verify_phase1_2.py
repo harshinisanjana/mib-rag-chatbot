@@ -3,16 +3,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import psycopg2
 from app.core.config import settings
-from app.db.database import engine, Base
-from app.models import (
-    User,
-    Document,
-    DocumentChunk,
-    Conversation,
-    Message,
-    MessageSource,
-    Escalation
-)
+from app.db.database import engine
 
 def verify():
     print("1. Testing PostgreSQL connection...")

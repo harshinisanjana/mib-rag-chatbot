@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.models.document import Document, DocumentStatus
 from app.models.document_chunk import DocumentChunk
 from app.services.chunking_service import ChunkingService
+from app.services.embedding_service import EmbeddingService
 from app.services.text_cleaning_service import clean_text
 from app.services.text_extraction_service import TextExtractionError, TextExtractionService
 
@@ -36,6 +37,8 @@ class DocumentProcessingService:
             if not chunks:
                 raise TextExtractionError("Document contains no extractable text")
 
+            embeddings = EmbeddingService().embed_texts([chunk.content for chunk in chunks])
+
             db.query(DocumentChunk).filter(DocumentChunk.document_id == document.id).delete(
                 synchronize_session=False
             )
@@ -44,6 +47,7 @@ class DocumentProcessingService:
                     document_id=document.id,
                     chunk_index=index,
                     content=chunk.content,
+                    embedding=embeddings[index],
                     chunk_metadata=chunk.metadata,
                 )
                 for index, chunk in enumerate(chunks)

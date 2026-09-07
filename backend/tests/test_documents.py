@@ -5,6 +5,8 @@ from fastapi.testclient import TestClient
 import fitz
 from docx import Document
 from app.main import app
+from app.db.database import SessionLocal
+from app.models.document_chunk import DocumentChunk
 
 client = TestClient(app)
 
@@ -42,7 +44,7 @@ def agent_token():
     return get_auth_token("agent@example.com", "Agent123!")
 
 
-def test_admin_upload_pdf(admin_token):
+def test_admin_upload_pdf(admin_token, fake_embedding_service):
     file_content = pdf_content("Knowledge base support instructions")
     files = {"file": ("support_guide.pdf", io.BytesIO(file_content), "application/pdf")}
     
@@ -58,8 +60,15 @@ def test_admin_upload_pdf(admin_token):
     assert data["chunk_count"] == 1
     assert os.path.exists(data["file_path"])
 
+    db = SessionLocal()
+    try:
+        chunk = db.query(DocumentChunk).filter(DocumentChunk.document_id == data["id"]).one()
+        assert len(chunk.embedding) == 384
+    finally:
+        db.close()
 
-def test_admin_upload_docx(admin_token):
+
+def test_admin_upload_docx(admin_token, fake_embedding_service):
     file_content = docx_content("Frequently asked questions and answers")
     files = {"file": ("faq_doc.docx", io.BytesIO(file_content), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
     
@@ -134,7 +143,7 @@ def test_list_documents(agent_token):
     assert data["total"] >= 1
 
 
-def test_get_document_detail_and_delete(admin_token, agent_token):
+def test_get_document_detail_and_delete(admin_token, agent_token, fake_embedding_service):
     # 1. Upload a temp document
     file_content = pdf_content("Temporary document for detail and delete test")
     files = {"file": ("temp_delete_test.pdf", io.BytesIO(file_content), "application/pdf")}

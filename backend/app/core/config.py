@@ -1,5 +1,4 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional
 from pydantic import Field
 
 class Settings(BaseSettings):
@@ -28,6 +27,8 @@ class Settings(BaseSettings):
 
     # Embedding
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embedding_dimension: int = 384
+    embedding_batch_size: int = 32
 
     # CORS - Accept comma-separated string and parse it
     cors_origins: str = Field(

@@ -38,7 +38,7 @@ class DocumentService:
         Validate, safely store file on disk, and create a document record in PostgreSQL.
         Status is initialized to 'uploaded'.
         """
-        original_filename, server_filename, file_path, file_size = save_upload_file(
+        original_filename, server_filename, file_path, _ = save_upload_file(
             file, cls.UPLOAD_DIR
         )
         
