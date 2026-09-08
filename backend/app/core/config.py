@@ -17,6 +17,9 @@ class Settings(BaseSettings):
 
     # Groq API
     groq_api_key: str = ""
+    groq_model: str = "openai/gpt-oss-20b"
+    groq_temperature: float = 0.0
+    groq_max_tokens: int = 800
 
     # Document Processing
     max_file_size_mb: int = 50
