@@ -1,6 +1,6 @@
 # AI Customer Support Knowledge Base - RAG Chatbot
 
-A full-stack RAG-based customer support system with document ingestion, semantic search, and grounded AI responses using Groq LLM.
+A full-stack RAG-based customer support system with document ingestion, semantic search, grounded AI responses using Groq LLM, and a customer-facing chat experience.
 
 ## 🏗️ Architecture Overview
 
@@ -88,19 +88,14 @@ LLM (Groq API)
 
 ### Frontend Setup
 
-1. **Create Angular project**:
+1. **Install dependencies**:
    ```bash
    cd frontend
-   ng new . --skip-git --style=css --routing
-   ```
-
-2. **Install dependencies**:
-   ```bash
    npm install
    ```
 
-3. **Configure backend proxy** (for development):
-   Create `proxy.conf.json`:
+2. **Configure backend proxy** (for development):
+   The repository includes `proxy.conf.json`:
    ```json
    {
      "/api": {
@@ -110,7 +105,7 @@ LLM (Groq API)
    }
    ```
 
-4. **Run frontend**:
+3. **Run frontend**:
    ```bash
    ng serve --proxy-config proxy.conf.json
    ```
@@ -189,11 +184,7 @@ mib-rag-chatbot/
 10. **Phase 10** Escalation
     -  Escalation workflow
 
-11. **Phase 11** Admin Dashboard
-    -  Document management UI
-    -  Analytics & conversations
-
-12. **Phase 12** Testing & Hardening
+11. **Phase 11** Testing & Hardening
     -  Comprehensive testing
     -  Security validation
 
