@@ -1,9 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_agent_or_admin
 from app.db.database import get_db
-from app.models.user import User
 from app.schemas.rag import RAGRequest, RAGResponse
 from app.services.rag_service import RAGService
 
@@ -14,7 +12,6 @@ router = APIRouter(prefix="/api/rag", tags=["rag"])
 def answer_question(
     request: RAGRequest,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(get_current_agent_or_admin),
 ):
     try:
         result = RAGService().answer(

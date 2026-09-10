@@ -63,7 +63,6 @@ def test_extracts_docx_paragraphs(tmp_path):
     assert "Account access" in text
     assert "reset link" in text
 
-
 def test_empty_and_invalid_docx_are_rejected(tmp_path):
     empty_path = tmp_path / "empty.docx"
     invalid_path = tmp_path / "invalid.docx"

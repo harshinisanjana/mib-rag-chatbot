@@ -1,0 +1,107 @@
+<!-- Particle canvas background -->
+<canvas class="particle-canvas" #particleCanvas></canvas>
+
+
+<!-- ═══════════════════════════════════ HERO ════════════════════════════════════ -->
+<main class="chat-page">
+  <div class="hero-text">
+    <h1 class="hero-heading">
+      AI-Powered <span class="hero-accent">Intelligent</span><br>Support
+    </h1>
+    <p class="hero-sub">Answers grounded in the MiB knowledge base, powered by advanced RAG technology.</p>
+  </div>
+
+  <!-- ═══════════════════════════════ CHAT PANEL ════════════════════════════════ -->
+  <section class="chat-shell" aria-labelledby="chat-title">
+
+    <!-- Panel header -->
+    <header class="chat-heading">
+      <div class="chat-heading-left">
+        <div class="chat-avatar-ring" aria-hidden="true">
+          <img src="mib-logo.png" alt="MiB Tech Solutions" class="chat-logo-img" />
+        </div>
+        <div>
+          <p class="eyebrow" id="chat-title">MiB Intelligent Support</p>
+          <p class="heading-sub">How can we help you today?</p>
+        </div>
+      </div>
+      <div class="availability" role="status" aria-live="polite">
+        <span class="availability-dot" aria-hidden="true"></span>
+        Support Online
+      </div>
+    </header>
+
+    <!-- Conversation -->
+    <div class="conversation" aria-live="polite" aria-label="Chat messages" role="log">
+      @for (message of messages(); track $index) {
+      <article class="message" [class.user-message]="message.role === 'user'">
+        @if (message.role === 'assistant') {
+        <div class="avatar" aria-hidden="true">
+          <img src="mib-logo.png" alt="MiB" class="avatar-logo-img" />
+        </div>
+        }
+        <div class="bubble" [class.user-bubble]="message.role === 'user'">
+          <p>{{ message.content }}</p>
+          @if (message.sources?.length) {
+          <div class="sources">
+            <span class="sources-label">Sources</span>
+            @for (source of message.sources; track source.chunk_id) {
+            <span class="source-chip">
+              Doc {{ source.document_id }} · §{{ source.chunk_index + 1 }}
+            </span>
+            }
+          </div>
+          }
+        </div>
+        @if (message.role === 'user') {
+        <div class="avatar user-avatar" aria-hidden="true">
+          <span>You</span>
+        </div>
+        }
+      </article>
+      }
+
+      @if (sending()) {
+      <article class="message">
+        <div class="avatar" aria-hidden="true"><img src="mib-logo.png" alt="MiB" class="avatar-logo-img" /></div>
+        <div class="bubble typing-bubble">
+          <span></span><span></span><span></span>
+        </div>
+      </article>
+      }
+    </div>
+
+    <!-- Suggestion chips -->
+    @if (messages().length === 1 && !sending()) {
+    <div class="suggestions" role="list" aria-label="Suggested questions">
+      @for (suggestion of suggestions; track suggestion) {
+      <button type="button" class="suggestion-btn" role="listitem" (click)="useSuggestion(suggestion)">
+        <span class="suggestion-arrow" aria-hidden="true">→</span>
+        {{ suggestion }}
+      </button>
+      }
+    </div>
+    }
+
+    <!-- Error -->
+    @if (error()) {
+    <p class="error-message" role="alert">⚠ {{ error() }}</p>
+    }
+
+    <!-- Composer -->
+    <form class="composer" (ngSubmit)="sendQuestion()" aria-label="Message composer">
+      <label class="sr-only" for="question">Ask MiB Support</label>
+      <input id="question" name="question" [ngModel]="question()" (ngModelChange)="question.set($event)"
+        placeholder="Ask a question about MiB Tech Solutions..." autocomplete="off" [disabled]="sending()"
+        aria-autocomplete="none" />
+      <button type="submit" id="send-btn" [disabled]="sending() || !question().trim()" aria-label="Send message">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20"
+          aria-hidden="true">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+        </svg>
+      </button>
+    </form>
+
+    <p class="disclaimer">MiB AI can make mistakes. Check important information with a support agent.</p>
+  </section>
+</main>

@@ -74,7 +74,13 @@ def test_rag_rejects_blank_questions():
         RAGService(FakeEmbeddingService(), FakeGroqService()).answer(None, "  ")
 
 
-def test_rag_endpoint_requires_authentication():
+def test_rag_endpoint_is_public(monkeypatch):
+    monkeypatch.setattr(
+        "app.api.rag.RAGService.answer",
+        lambda self, **kwargs: SimpleNamespace(answer="Public answer", grounded=False, sources=[]),
+    )
+
     response = client.post("/api/rag/answer", json={"question": "What is the refund policy?"})
 
-    assert response.status_code == 401
+    assert response.status_code == 200
+    assert response.json()["grounded"] is False
