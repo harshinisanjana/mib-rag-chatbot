@@ -1,20 +1,30 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, ElementRef, ViewChild, effect, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { marked } from 'marked';
 
 interface RAGSource {
   chunk_id: number;
   document_id: number;
+  document_name: string;
   chunk_index: number;
   metadata: Record<string, unknown> | null;
   similarity_score: number;
 }
 
-interface RAGResponse {
+interface ChatMessageResponse {
   answer: string;
   grounded: boolean;
   sources: RAGSource[];
+  session_id: string;
+  conversation_id: number;
+}
+
+interface EscalateResponse {
+  escalated: boolean;
+  session_id: string;
+  message: string;
 }
 
 interface ChatMessage {
@@ -31,7 +41,7 @@ interface ChatMessage {
   templateUrl: './chat.component.html',
   styleUrl: './chat.component.css',
 })
-export class ChatComponent {
+export class ChatComponent implements OnInit {
   private readonly http = inject(HttpClient);
 
   @ViewChild('scrollContainer') private scrollContainer?: ElementRef<HTMLDivElement>;
@@ -40,6 +50,10 @@ export class ChatComponent {
   readonly sending = signal(false);
   readonly error = signal('');
   readonly escalated = signal(false);
+  readonly sessionReady = signal(false);
+
+  private sessionId = '';
+
   readonly messages = signal<ChatMessage[]>([
     {
       role: 'assistant',
@@ -51,16 +65,29 @@ export class ChatComponent {
 
   readonly suggestions = [
     'What services does MiB Tech Solutions provide?',
-    'How can I get help with my account or deployment?',
+    'Do you offer free consultations?',
     'What is your support and SLA process?',
   ];
 
   constructor() {
     effect(() => {
-      // Re-run whenever messages or sending status update
       this.messages();
       this.sending();
       setTimeout(() => this.scrollToBottom(), 40);
+    });
+  }
+
+  ngOnInit(): void {
+    // Create a conversation session on load
+    this.http.post<{ session_id: string; conversation_id: number }>('/api/chat/conversations', {}).subscribe({
+      next: (res) => {
+        this.sessionId = res.session_id;
+        this.sessionReady.set(true);
+      },
+      error: () => {
+        // Session creation failed — the chat will still show but messages won't persist
+        this.sessionReady.set(true);
+      },
     });
   }
 
@@ -71,34 +98,58 @@ export class ChatComponent {
     }
   }
 
+  renderMarkdown(content: string): string {
+    return marked.parse(content, { async: false }) as string;
+  }
+
   escalateToHuman(): void {
-    if (this.escalated()) {
-      return;
+    if (this.escalated()) return;
+
+    if (this.sessionId) {
+      this.http
+        .post<EscalateResponse>(`/api/chat/conversations/${this.sessionId}/escalate`, {})
+        .subscribe({
+          next: (res) => {
+            this.escalated.set(true);
+            this.messages.update((msgs) => [
+              ...msgs,
+              { role: 'assistant', content: res.message, grounded: true },
+            ]);
+          },
+          error: () => {
+            this.error.set('We could not reach a support agent. Please try again.');
+          },
+        });
+    } else {
+      this.escalated.set(true);
+      this.messages.update((msgs) => [
+        ...msgs,
+        {
+          role: 'assistant',
+          content:
+            'Please contact support@mibtechsolutions.com so a representative can assist you.',
+          grounded: true,
+        },
+      ]);
     }
-    this.escalated.set(true);
-    this.messages.update((msgs) => [
-      ...msgs,
-      {
-        role: 'assistant',
-        content:
-          'Your conversation has been routed to our tier-2 customer support team. A representative will connect with you here shortly, or reach out to your registered email. You can also contact us directly at support@mibtechsolutions.com.',
-        grounded: true,
-      },
-    ]);
   }
 
   sendQuestion(): void {
     const value = this.question().trim();
-    if (!value || this.sending()) {
-      return;
-    }
+    if (!value || this.sending()) return;
 
     this.messages.update((messages) => [...messages, { role: 'user', content: value }]);
     this.question.set('');
     this.error.set('');
     this.sending.set(true);
 
-    this.http.post<RAGResponse>('/api/rag/answer', { question: value }).subscribe({
+    const url = this.sessionId
+      ? `/api/chat/conversations/${this.sessionId}/messages`
+      : '/api/rag/answer';
+
+    const payload = this.sessionId ? { message: value } : { question: value };
+
+    this.http.post<ChatMessageResponse>(url, payload).subscribe({
       next: (response) => {
         this.messages.update((messages) => [
           ...messages,

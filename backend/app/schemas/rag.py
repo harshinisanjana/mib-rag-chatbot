@@ -10,6 +10,7 @@ class RAGRequest(BaseModel):
 class RAGSourceResponse(BaseModel):
     chunk_id: int
     document_id: int
+    document_name: str
     chunk_index: int
     metadata: dict | None
     similarity_score: float
@@ -18,4 +19,4 @@ class RAGSourceResponse(BaseModel):
 class RAGResponse(BaseModel):
     answer: str
     grounded: bool
-    sources: list[RAGSourceResponse]
+    sources: list[RAGSourceResponse]

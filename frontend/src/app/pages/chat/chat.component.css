@@ -317,6 +317,84 @@
   word-break: break-word;
 }
 
+.bubble-text :is(p, ul, ol, blockquote, pre) {
+  margin: 0 0 0.65rem;
+}
+
+.bubble-text > :last-child {
+  margin-bottom: 0;
+}
+
+.bubble-text ul,
+.bubble-text ol {
+  padding-left: 1.25rem;
+}
+
+.bubble-text li + li {
+  margin-top: 0.25rem;
+}
+
+.bubble-text strong {
+  color: var(--text-main);
+}
+
+.bubble-text a {
+  color: var(--gold);
+}
+
+.bubble-text code {
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  background: #11121a;
+  color: var(--gold);
+  font-size: 0.82em;
+}
+
+.bubble-text pre {
+  overflow-x: auto;
+  padding: 0.7rem;
+  background: #11121a;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.bubble-text pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.bubble-text table {
+  width: 100%;
+  margin: 0.75rem 0;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.bubble-text th,
+.bubble-text td {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  vertical-align: top;
+  text-align: left;
+}
+
+.bubble-text th {
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.bubble-text tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+@media (max-width: 600px) {
+  .bubble-text table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
 .sources-expander {
   margin-top: 0.55rem;
   padding-top: 0.45rem;

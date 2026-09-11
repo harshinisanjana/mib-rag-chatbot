@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
+from app.models.document import Document
 from app.schemas.rag import RAGRequest, RAGResponse
 from app.services.rag_service import RAGService
 
@@ -28,6 +29,13 @@ def answer_question(
             detail="Answer generation is temporarily unavailable",
         ) from exc
 
+    # Build document name lookup from the DB for sources found
+    doc_ids = {s.chunk.document_id for s in result.sources}
+    doc_map: dict[int, str] = {}
+    if doc_ids:
+        docs = db.query(Document).filter(Document.id.in_(doc_ids)).all()
+        doc_map = {d.id: d.original_filename for d in docs}
+
     return {
         "answer": result.answer,
         "grounded": result.grounded,
@@ -35,10 +43,11 @@ def answer_question(
             {
                 "chunk_id": source.chunk.id,
                 "document_id": source.chunk.document_id,
+                "document_name": doc_map.get(source.chunk.document_id, f"Document {source.chunk.document_id}"),
                 "chunk_index": source.chunk.chunk_index,
                 "metadata": source.chunk.chunk_metadata,
                 "similarity_score": source.similarity_score,
             }
             for source in result.sources
         ],
-    }
+    }
