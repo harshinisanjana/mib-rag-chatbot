@@ -1,113 +1,80 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
+import logging
 
-from app.db.database import get_db
-from app.schemas.rag import RAGSourceResponse
-from app.services.chat_service import ChatService
+from fastapi import APIRouter, HTTPException, status
 
-router = APIRouter(prefix="/api/chat", tags=["chat"])
+from app.models.schemas import ChatRequest, ChatResponse, SourceInfo, HealthResponse, IngestResponse
+from app.rag.pipeline import RAGPipeline
+from app.services.llm_service import LLMService
+from app.services.vector_store_service import VectorStoreService
+from app.ingestion.ingest import ingest_documents
 
+logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Schemas
-# ---------------------------------------------------------------------------
-
-class ConversationResponse(BaseModel):
-    session_id: str
-    conversation_id: int
-    status: str
+router = APIRouter(prefix="/api", tags=["chat"])
 
 
-class ChatMessageRequest(BaseModel):
-    message: str = Field(min_length=1, max_length=2000)
-
-
-class ChatMessageResponse(BaseModel):
-    answer: str
-    grounded: bool
-    sources: list[RAGSourceResponse]
-    session_id: str
-    conversation_id: int
-
-
-class EscalateRequest(BaseModel):
-    reason: str | None = Field(default=None, max_length=1000)
-
-
-class EscalateResponse(BaseModel):
-    escalated: bool
-    session_id: str
-    message: str
-
-
-# ---------------------------------------------------------------------------
-# Endpoints
-# ---------------------------------------------------------------------------
-
-@router.post("/conversations", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
-def create_conversation(db: Session = Depends(get_db)):
-    """Create a new conversation session. Returns a session_id to use for subsequent messages."""
-    conv = ChatService.create_conversation(db)
-    return {
-        "session_id": str(conv.session_id),
-        "conversation_id": conv.id,
-        "status": conv.status.value,
-    }
-
-
-@router.post("/conversations/{session_id}/messages", response_model=ChatMessageResponse)
-def send_message(
-    session_id: str,
-    request: ChatMessageRequest,
-    db: Session = Depends(get_db),
-):
-    """Send a customer message and receive an AI-generated, grounded response."""
+@router.post("/chat", response_model=ChatResponse)
+def chat(request: ChatRequest):
+    """Send a message and receive a grounded RAG response."""
     try:
-        result = ChatService().send_message(
-            db=db,
-            session_id=session_id,
-            customer_text=request.message,
+        pipeline = RAGPipeline.get_instance()
+        result = pipeline.query(
+            question=request.message,
+            session_id=request.session_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    except Exception as exc:
+    except RuntimeError as exc:
+        logger.exception("RAG pipeline error")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="The support service is temporarily unavailable. Please try again.",
+            detail="The AI service is temporarily unavailable. Please ensure Ollama is running.",
+        ) from exc
+    except Exception as exc:
+        logger.exception("Unexpected error in chat endpoint")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred. Please try again.",
         ) from exc
 
-    return {
-        "answer": result.answer,
-        "grounded": result.grounded,
-        "sources": result.sources,
-        "session_id": result.session_id,
-        "conversation_id": result.conversation_id,
-    }
+    return ChatResponse(
+        answer=result.answer,
+        grounded=result.grounded,
+        sources=[SourceInfo(**s) for s in result.sources],
+        session_id=result.session_id,
+    )
 
 
-@router.post("/conversations/{session_id}/escalate", response_model=EscalateResponse)
-def escalate_conversation(
-    session_id: str,
-    request: EscalateRequest,
-    db: Session = Depends(get_db),
-):
-    """Escalate a conversation to the human support team."""
+@router.get("/health", response_model=HealthResponse)
+def health_check():
+    """Health check including Ollama and ChromaDB status."""
+    ollama_ok = LLMService.check_health()
+    doc_count = VectorStoreService.count()
+
+    return HealthResponse(
+        status="healthy" if ollama_ok else "degraded",
+        service="MIB RAG Chatbot",
+        version="1.0.0",
+        ollama_status="connected" if ollama_ok else "disconnected",
+        documents_indexed=doc_count,
+    )
+
+
+@router.post("/ingest", response_model=IngestResponse)
+def run_ingestion():
+    """Process all documents in the data/documents directory and index them."""
     try:
-        ChatService.escalate(db=db, session_id=session_id, reason=request.reason)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    except Exception as exc:
+        result = ingest_documents(clear_existing=True)
+    except FileNotFoundError as exc:
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Could not escalate the conversation right now.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        logger.exception("Ingestion failed")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Document ingestion failed: {exc}",
         ) from exc
 
-    return {
-        "escalated": True,
-        "session_id": session_id,
-        "message": (
-            "Your conversation has been routed to our support team. "
-            "Please contact us directly at support@mibtechsolutions.com so a representative can assist you."
-        ),
-    }
+    return IngestResponse(**result)

@@ -23,6 +23,8 @@ class TextExtractionService:
             return TextExtractionService._extract_pdf(path)
         if file_type == "docx":
             return TextExtractionService._extract_docx(path)
+        if file_type in ("txt", "md"):
+            return TextExtractionService._extract_txt(path)
         raise TextExtractionError(f"Unsupported file type: {file_type}")
 
     @staticmethod
@@ -49,6 +51,19 @@ class TextExtractionService:
         except Exception as exc:
             raise TextExtractionError(f"Could not read DOCX: {exc}") from exc
         return [ExtractedPage("\n\n".join(paragraphs))] if paragraphs else []
+
+    @staticmethod
+    def _extract_txt(path: Path) -> list[ExtractedPage]:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            try:
+                text = path.read_text(encoding="latin-1")
+            except Exception as exc:
+                raise TextExtractionError(f"Could not read text file: {exc}") from exc
+        except Exception as exc:
+            raise TextExtractionError(f"Could not read text file: {exc}") from exc
+        return [ExtractedPage(text)] if text.strip() else []
 
 
 def extract_text(file_path: str, file_type: str) -> str:

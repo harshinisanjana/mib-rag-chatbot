@@ -3,23 +3,26 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
-from app.api.auth import router as auth_router
-from app.api.documents import router as documents_router
-from app.api.retrieval import router as retrieval_router
-from app.api.rag import router as rag_router
 from app.api.chat import router as chat_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Application starting...")
+    print(f"Starting {settings.app_name}...")
+    print(f"  Ollama URL: {settings.ollama_base_url}")
+    print(f"  LLM Model: {settings.llm_model}")
+    print(f"  Embedding Model: {settings.embedding_model}")
+    print(f"  ChromaDB: {settings.get_chroma_persist_path()}")
+    print(f"  Documents: {settings.get_documents_path()}")
     yield
-    print("Application shutting down...")
+    print("Shutting down...")
+
 
 app = FastAPI(
     title=settings.app_name,
-    description="RAG-based customer support system",
-    version="0.1.0",
-    lifespan=lifespan
+    description="RAG-based MIB document chatbot powered by LlamaIndex + Ollama",
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -30,30 +33,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routers
-app.include_router(auth_router)
-app.include_router(documents_router)
-app.include_router(retrieval_router)
-app.include_router(rag_router)
 app.include_router(chat_router)
 
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "service": "AI Customer Support Knowledge Base",
-        "version": "0.1.0"
-    }
 
 @app.get("/")
 async def root():
-    """Root endpoint"""
     return {
-        "message": "Welcome to the AI Customer Support Knowledge Base API",
+        "message": f"Welcome to {settings.app_name}",
         "docs": "/docs",
-        "health": "/health"
+        "health": "/api/health",
     }
+
 
 if __name__ == "__main__":
     import uvicorn
